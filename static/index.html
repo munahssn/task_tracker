@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: monospace, sans-serif;
+            background: #131314;
+            padding: 15px;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #e3e3e3;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .form-card {
+            background: #1e1f20;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(255,255,255,0.1);
+            border: #444746 1px solid;
+            margin-bottom: 15px;
+        }
+
+        .form-card h2 {
+            margin-bottom: 12px;
+            color: #e3e3e3;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 8px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: monospace, sans-serif;
+            background: #2a2b2c;
+            color: #e3e3e3;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #fd706d;
+        }
+        
+        button {
+            background: #fd706d;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #e53935;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .user-info {
+            text-align: center;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .user-info button {
+            background: #444;
+            padding: 4px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .user-info button:hover {
+            background: #666;
+        }
+        
+        .tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+        }
+        
+        .task-card {
+            background: #1e1f20;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(255,255,255,0.08);
+            border: #444746 1px solid;
+        }
+        
+        .task-header {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .task-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #e3e3e3;
+            margin-bottom: 2px;
+        }
+        
+        .task-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        
+        .task-type.homework { background: #e3f2fd; color: #1976d2; }
+        .task-type.assignment { background: #fff3e0; color: #f57c00; }
+        .task-type.exam { background: #ffebee; color: #c62828; }
+        
+        .task-deadline {
+            color: #999;
+            font-size: 0.85em;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        
+        .task-detail {
+            margin-top: 10px;
+            background: #2a2b2c;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ccc;
+            line-height: 1.4;
+        }
+        
+        .delete-btn {
+            background: #fd706d;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-top: 8px;
+            width: 100%;
+        }
+        
+        .delete-btn:hover {
+            background: #e53935;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .auth-tabs button {
+            flex: 1;
+            background: #2a2b2c;
+            color: #999;
+        }
+
+        .auth-tabs button.active {
+            background: #fd706d;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            color: #fd706d;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Tracker</h1>
+        
+        <!-- authorization -->
+        <div id="authSection" class="form-card">
+            <div class="auth-tabs">
+                <button id="loginTab" class="active" onclick="switchTab('login')">Login</button>
+                <button id="registerTab" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="loginUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <div class="error" id="loginError"></div>
+                <button type="submit">Login</button>
+            </form>
+
+            <form id="registerForm" class="hidden">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="registerUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="registerPassword" required minlength="6">
+                </div>
+                <div class="error" id="registerError"></div>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+
+        <!-- main app -->
+        <div id="appSection" class="hidden">
+            <div class="user-info">
+                Logged in as <strong id="currentUsername"></strong>
+                <button onclick="logout()">Logout</button>
+            </div>
+
+            <div class="form-card">
+                <h2>Add Task</h2>
+                <form id="addForm">
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type:</label>
+                        <select id="type" required>
+                            <option value="homework">Homework</option>
+                            <option value="assignment">Assignment</option>
+                            <option value="exam">Exam</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Deadline:</label>
+                        <input type="date" id="deadline" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Details:</label>
+                        <textarea id="detail" placeholder="Task details..."></textarea>
+                    </div>
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+            
+            <div class="tasks-grid" id="tasks"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        let authToken = localStorage.getItem('token');
+        let username = localStorage.getItem('username');
+
+        if (authToken) {
+            showApp();
+        }
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                loginTab.classList.remove('active');
+                registerTab.classList.add('active');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('loginError');
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('loginUsername').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail);
+                }
+
+                const data = await res.json();
+                authToken = data.access_token;
+                username = data.username;
+                localStorage.setItem('token', authToken);
+                localStorage.setItem('username', username);
+                
+                showApp();
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('registerError');
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch(`${API}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('registerUsername').value,
+                        password: document.getElementById('registerPassword').value
+                    })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail);
+                }
+
+                const data = await res.json();
+                authToken = data.access_token;
+                username = data.username;
+                localStorage.setItem('token', authToken);
+                localStorage.setItem('username', username);
+                
+                showApp();
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        });
+
+        function logout() {
+            authToken = null;
+            username = null;
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('appSection').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+        }
+
+        function showApp() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('appSection').classList.remove('hidden');
+            document.getElementById('currentUsername').textContent = username;
+            loadTasks();
+        }
+
+        async function loadTasks() {
+            const tasksContainer = document.getElementById('tasks');
+            
+            try {
+                const res = await fetch(`${API}/tasks?token=${authToken}`);
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to load tasks');
+                }
+                
+                const tasks = await res.json();
+                renderTasks(tasks);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                tasksContainer.innerHTML = '<p style="color: #fd706d; text-align: center;">Failed to load tasks</p>';
+            }
+        }
+
+        function renderTasks(tasks) {
+            const tasksContainer = document.getElementById('tasks');
+            
+            if (tasks.length === 0) {
+                tasksContainer.innerHTML = '<p style="color: #888; text-align: center; grid-column: 1/-1;">No tasks yet</p>';
+                return;
+            }
+            
+            tasksContainer.innerHTML = tasks.map(t => `
+                <div class="task-card">
+                    <div class="task-header">
+                        <div class="task-name">${escapeHtml(t.name)}</div>
+                        <span class="task-type ${t.type}">${t.type}</span>
+                    </div>
+                    
+                    <div class="task-deadline">Due ${formatDate(t.deadline)}</div>
+                    
+                    ${t.detail ? `<div class="task-detail">${escapeHtml(t.detail)}</div>` : ''}
+                    
+                    <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Adding...';
+            
+            try {
+                const res = await fetch(`${API}/tasks?token=${authToken}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('name').value,
+                        type: document.getElementById('type').value,
+                        deadline: document.getElementById('deadline').value,
+                        detail: document.getElementById('detail').value
+                    })
+                });
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to add task');
+                }
+                
+                e.target.reset();
+                await loadTasks();
+            } catch (error) {
+                console.error('Error adding task:', error);
+                alert('Failed to add task. Please try again.');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Add';
+            }
+        });
+
+        async function deleteTask(id) {
+            if (!confirm('Delete this task?')) return;
+            
+            try {
+                const res = await fetch(`${API}/tasks/${id}?token=${authToken}`, { 
+                    method: 'DELETE' 
+                });
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to delete task');
+                }
+                
+                await loadTasks();
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                alert('Failed to delete task. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
