@@ -1,11 +1,13 @@
+import os
+import secrets
 import sqlite3
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 
 app = FastAPI()
@@ -17,10 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SECRET_KEY = "absbsbssabsajaksjdiwj"
+# Set SECRET_KEY as an environment variable on your host
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
 ALGORITHM = "HS256"
 
-DB_FILE = "tasks.db"
+DB_FILE = os.environ.get("DB_FILE", "tasks.db")
 
 def get_db():
     conn = sqlite3.connect(DB_FILE)
@@ -73,16 +76,22 @@ class LoginResponse(BaseModel):
     username: str
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA-256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Salted PBKDF2 hash, stored as salt$hash"""
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000).hex()
+    return f"{salt}${digest}"
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password"""
-    return hash_password(plain_password) == hashed_password
+    if "$" not in hashed_password:
+        # old unsalted SHA-256 hashes from before
+        return secrets.compare_digest(hashlib.sha256(plain_password.encode()).hexdigest(), hashed_password)
+    salt, digest = hashed_password.split("$", 1)
+    check = hashlib.pbkdf2_hmac("sha256", plain_password.encode(), salt.encode(), 200_000).hex()
+    return secrets.compare_digest(check, digest)
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=7)
+    expire = datetime.now(timezone.utc) + timedelta(days=7)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -95,7 +104,7 @@ def get_current_user(token: str) -> int:
         return user_id
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/register", response_model=LoginResponse)
@@ -198,4 +207,6 @@ def delete_task(task_id: int, token: str):
     finally:
         conn.close()
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+@app.get("/")
+def index():
+    return FileResponse("index.html")
